@@ -1,0 +1,60 @@
+#!/usr/bin/python
+from sgmllib import SGMLParser
+import urllib
+
+class Parser(SGMLParser):
+    def reset(s):
+        SGMLParser.reset(s)
+        s.t=s.tr=s.td=s.size=s.date=0
+        s.row={}
+    def handle_data(s,data):
+        if s.tr>1 and s.t==10 and s.td:
+            if s.size:
+                if data!='\n':
+                    s.row['size']=data
+                s.size=s.date=0
+            if s.date:
+                if data!='\n':
+                    s.row['date']=data
+                s.size=s.date=0
+    def start_tr(s,attrs):
+        if s.t==10:
+            s.row={}
+            s.tr+=1
+            s.td=0
+    def end_tr(s):
+        if s.row:
+            print s.row
+    def start_td(s,attrs):
+        if s.tr<1 and s.t!=10:
+            return 0
+        s.td += 1
+        if s.td==5:
+            s.date=1
+            return 0
+        if s.td==6:
+            s.size=1
+            return 0
+        s.size=s.date=0
+    def start_a(s,attrs):
+        if s.tr>1 and s.t==10:
+            href = [v for k, v in attrs if k=='href']
+            title = [v for k, v in attrs if k=='title']
+            if title:
+                str=title[0]
+                if str=='Torrent File':
+                    #print "%s:%s"%(str,href[0])
+                    s.row['link']=href[0]
+                if str.startswith('View'):
+                    #print str[14:]
+                    s.row['title']=str[14:]
+                
+    def start_table(s,attrs):
+        #print attrs
+        s.t+=1
+
+if __name__ == '__main__':
+    sock = urllib.urlopen('http://h33t.to/search/buco+nero')
+    parser = Parser()
+    parser.feed(sock.read())
+    sock.close()
