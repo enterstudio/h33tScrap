@@ -1,12 +1,14 @@
 #!/usr/bin/python
 from sgmllib import SGMLParser
 import urllib
+import sys
 
 class Parser(SGMLParser):
     def reset(s):
         SGMLParser.reset(s)
         s.t=s.tr=s.td=s.size=s.date=0
         s.row={}
+        s.results = []
     def handle_data(s,data):
         if s.tr>1 and s.t==10 and s.td:
             if s.size:
@@ -24,7 +26,7 @@ class Parser(SGMLParser):
             s.td=0
     def end_tr(s):
         if s.row:
-            print s.row
+            s.results.append(s.row)
     def start_td(s,attrs):
         if s.tr<1 and s.t!=10:
             return 0
@@ -52,9 +54,15 @@ class Parser(SGMLParser):
     def start_table(s,attrs):
         #print attrs
         s.t+=1
+    def get_results(s):
+        return s.results
 
 if __name__ == '__main__':
-    sock = urllib.urlopen('http://h33t.to/search/buco+nero')
+    search='+'.join(sys.argv[1:])
+    sock = urllib.urlopen('http://h33t.to/search/%s'%search)
     parser = Parser()
     parser.feed(sock.read())
     sock.close()
+    r=parser.get_results()
+    for row in r:
+        print "%s      %s   %s\n%s\n\n"%(row['title'],row['date'],row['size'],row['link'])
